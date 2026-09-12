@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Downloader Pessoal</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, Arial, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .card {
+      background: #1e293b;
+      padding: 2rem 2.5rem;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+    h1 { font-size: 1.3rem; margin-bottom: 1.5rem; }
+    input[type="text"] {
+      width: 100%;
+      padding: 0.7rem 0.9rem;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      background: #0f172a;
+      color: #e2e8f0;
+      box-sizing: border-box;
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+    }
+    .modes {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .modes label {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: #0f172a;
+      padding: 0.6rem 0.8rem;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 1px solid #334155;
+    }
+    button {
+      width: 100%;
+      padding: 0.8rem;
+      border: none;
+      border-radius: 8px;
+      background: #6366f1;
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    button:disabled { opacity: 0.6; cursor: default; }
+    #status { margin-top: 1rem; font-size: 0.9rem; white-space: pre-wrap; }
+    .error { color: #f87171; }
+    .ok { color: #4ade80; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Baixar vídeo / áudio / foto</h1>
+    <a href="/logout" style="display:block;text-align:right;font-size:0.8rem;color:#94a3b8;margin-top:-1rem;margin-bottom:1rem;">sair</a>
+    <form id="form">
+      <input type="text" id="url" name="url" placeholder="Cole o link do YouTube, TikTok ou Instagram" required>
+      <div class="modes">
+        <label><input type="radio" name="mode" value="video" checked> Vídeo (máx. qualidade)</label>
+        <label><input type="radio" name="mode" value="audio"> Somente áudio</label>
+      </div>
+      <button type="submit" id="submitBtn">Baixar</button>
+    </form>
+    <div id="status"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById("form");
+    const status = document.getElementById("status");
+    const submitBtn = document.getElementById("submitBtn");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      status.textContent = "Baixando... isso pode levar um tempo.";
+      status.className = "";
+      submitBtn.disabled = true;
+
+      const formData = new FormData(form);
+
+      try {
+        const res = await fetch("/download", { method: "POST", body: formData });
+
+        if (!res.ok) {
+          const data = await res.json();
+          status.textContent = data.error || "Erro desconhecido.";
+          status.className = "error";
+          return;
+        }
+
+        const blob = await res.blob();
+        const disposition = res.headers.get("Content-Disposition") || "";
+        const match = disposition.match(/filename="?(.+)"?/);
+        const filename = match ? match[1].replace(/"/g, "") : "arquivo";
+
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        link.click();
+
+        status.textContent = "Download concluído!";
+        status.className = "ok";
+      } catch (err) {
+        status.textContent = "Erro de conexão: " + err.message;
+        status.className = "error";
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
